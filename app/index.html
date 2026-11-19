@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VICE FRAME — GTA-Style Cover Art Maker</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <h1>VICE <span>FRAME</span></h1>
+  <p class="tagline">Turn your photo into a multi-panel Vice City poster — offline, in your browser.</p>
+</header>
+
+<main class="layout">
+  <section class="stage">
+    <canvas id="preview" width="920" height="518"></canvas>
+    <p class="hint">Click a panel to select it, then drag the photo inside it to reposition. Use the sliders to zoom and shift.</p>
+    <div id="photoStrip" class="strip" aria-label="Loaded photos"></div>
+  </section>
+
+  <aside class="panel">
+    <section>
+      <h2>1 · Photo</h2>
+      <label class="filebtn">Choose photos…
+        <input id="fileInput" type="file" accept="image/*" multiple>
+      </label>
+      <button id="sampleBtn" type="button" class="ghost">Load sample photos</button>
+      <p class="note">Photos stay on your machine — nothing is uploaded.</p>
+    </section>
+
+    <section>
+      <h2>2 · Layout</h2>
+      <div id="layouts" class="chips"></div>
+    </section>
+
+    <section>
+      <h2>3 · Colour grade</h2>
+      <div id="grades" class="chips"></div>
+    </section>
+
+    <section>
+      <h2>4 · Caption</h2>
+      <label>Main caption
+        <input id="caption" type="text" value="VICE CITY" maxlength="24">
+      </label>
+      <label>Sub-caption
+        <input id="subcaption" type="text" value="NEON NIGHTS • 2026" maxlength="40">
+      </label>
+    </section>
+
+    <section>
+      <h2>5 · Selected panel</h2>
+      <p id="panelLabel" class="note">Panel 1 of 3</p>
+      <label>Photo in this panel
+        <select id="photoPick"></select>
+      </label>
+      <label>Zoom <span id="zoomVal">100%</span>
+        <input id="zoom" type="range" min="1" max="2.5" step="0.01" value="1">
+      </label>
+      <label>Shift left / right
+        <input id="shiftX" type="range" min="-0.5" max="0.5" step="0.01" value="0">
+      </label>
+      <label>Shift up / down
+        <input id="shiftY" type="range" min="-0.5" max="0.5" step="0.01" value="0">
+      </label>
+    </section>
+
+    <section>
+      <h2>6 · Export</h2>
+      <div id="sizes" class="chips"></div>
+      <button id="exportBtn" type="button" class="export">Export PNG</button>
+      <p id="status" class="note" role="status"></p>
+    </section>
+
+    <footer class="about">
+      <p>VICE FRAME makes original poster-style cover art. It is not affiliated with
+      Rockstar Games and uses no Rockstar logo, artwork or font — lettering is drawn
+      with system fonts.</p>
+    </footer>
+  </aside>
+</main>
+
+<script type="module" src="src/main.js"></script>
+<script type="module" src="src/shots.js"></script>
+</body>
+</html>

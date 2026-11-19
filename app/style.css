@@ -1,0 +1,142 @@
+/* VICE FRAME — editor chrome. Dark neon UI; the cover itself is drawn on canvas. */
+:root {
+  --bg: #0b0614;
+  --panel: #17102a;
+  --panel-2: #1f1538;
+  --ink: #f4efff;
+  --muted: #b9a8d8;
+  --line: #3a2a5e;
+  --pink: #ff2ec4;
+  --cyan: #00e5ff;
+  --amber: #ffb13c;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+.topbar {
+  padding: 14px 22px 10px;
+  border-bottom: 2px solid var(--line);
+  background: linear-gradient(90deg, #2a0a4a, #4a0a3d 55%, #0a2a4a);
+}
+.topbar h1 {
+  margin: 0;
+  font-family: "Arial Black", Impact, sans-serif;
+  font-size: 30px;
+  letter-spacing: 2px;
+  line-height: 1;
+}
+.topbar h1 span { color: var(--amber); }
+.tagline { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 18px;
+  padding: 18px 22px 30px;
+  align-items: start;
+}
+.stage { min-width: 0; }
+#preview {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #000;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  cursor: grab;
+  touch-action: none;
+}
+#preview:active { cursor: grabbing; }
+.hint { color: var(--muted); font-size: 13px; margin: 10px 2px; }
+.strip { display: flex; flex-wrap: wrap; gap: 8px; }
+.thumb {
+  background: var(--panel-2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.thumb:hover { border-color: var(--cyan); }
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 6px 16px 16px;
+}
+.panel section { border-bottom: 1px solid var(--line); padding: 12px 0; }
+.panel section:last-child { border-bottom: 0; }
+.panel h2 { font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--amber); margin: 0 0 10px; }
+.panel label { display: block; font-size: 13px; color: var(--muted); margin: 8px 0; }
+.panel input[type="text"], .panel select {
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: #0e0820;
+  color: var(--ink);
+  font-size: 14px;
+}
+.panel input[type="range"] { width: 100%; accent-color: var(--pink); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  background: var(--panel-2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 11px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.chip.on { border-color: var(--pink); background: #3d0a33; color: #fff; }
+.filebtn {
+  display: inline-block;
+  background: #c4007f;
+  color: #fff;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.filebtn input { display: none; }
+.ghost {
+  background: transparent;
+  color: var(--cyan);
+  border: 1px solid var(--cyan);
+  border-radius: 8px;
+  padding: 9px 12px;
+  margin-left: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.export {
+  width: 100%;
+  margin-top: 10px;
+  padding: 13px;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #14001f;
+  background: linear-gradient(90deg, var(--amber), var(--pink));
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.export:disabled { opacity: 0.6; cursor: wait; }
+.note { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.about p { font-size: 11px; color: var(--muted); line-height: 1.6; }
+body.shot-cover { background: #000; }
+body.shot-cover .topbar, body.shot-cover .layout .panel,
+body.shot-cover .hint, body.shot-cover .strip { display: none; }
+body.shot-cover .layout { display: block; padding: 0; }
+body.shot-cover .stage { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+body.shot-cover #preview { border: 0; border-radius: 0; width: auto; }
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+}
