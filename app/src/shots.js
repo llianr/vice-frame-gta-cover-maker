@@ -1,10 +1,52 @@
 // VICE FRAME — deterministic screenshot scenes.
-// Reads ?shot=editor|cover plus &photo=<sample>&caption=<text>&size=<WxH>.
-// Loads the named sample photo into every panel, applies the caption, paints
-// once, then sets window.__shotReady so a screenshot runner knows the
-// picture is final. No network: samples live under app/samples/.
+// Reads ?shot=editor|cover plus &size=<WxH>&grade=<id>&caption=<text>.
+// Loads every built-in sample, then applies the scene for that export
+// size: which photo sits in which panel and how it is framed (zoom plus
+// focal point). Scenes were tuned panel by panel against the rendered
+// covers — every panel holds a different photo, faces stay whole, and
+// the caption band across the bottom never covers a face. Sets
+// window.__shotReady once the picture is final. No network: samples
+// live under app/samples/.
 
 import { EXPORT_SIZES } from './cover.js';
+
+const SAMPLES = ['boulevard.jpg', 'pier.jpg', 'neon.jpg', 'lifeguard.jpg', 'classic-car.jpg'];
+
+// One scene per export size, one entry per poster panel
+// (hero, bottom-left, bottom-right). Framing notes per size:
+//
+// landscape 1920×1080 — every panel is a wide, short slice. The hero is
+//   the wide lifeguard-tower panorama. The bottom panels get the two
+//   landscape scenes with no faces — the classic car and the neon sign —
+//   because a portrait photo in a 2.4:1 panel is magnified until the
+//   face fills the panel and lands under the caption band (checked
+//   against the render: that is exactly what the first attempt did).
+//   The boulevard portrait headlines the tall sizes instead.
+// portrait 1080×1350 — the tall hero suits the boulevard portrait; the
+//   fisherman is zoomed a little so his face clears the caption band;
+//   the classic car is nearly square and lands whole.
+// square 1080×1080 — lifeguard hero again (its full height fits), the
+//   boulevard portrait low-left with a high focal point, classic car
+//   low-right. The fisherman sits this size out: in a square bottom
+//   panel his hat or his chin would meet the caption, so he only
+//   appears where the geometry gives his face clear air.
+const SCENES = {
+  landscape: [
+    { photo: 'lifeguard.jpg', zoom: 1, fx: 0.5, fy: 0.3 },
+    { photo: 'classic-car.jpg', zoom: 1, fx: 0.5, fy: 0.6 },
+    { photo: 'neon.jpg', zoom: 1, fx: 0.5, fy: 0.3 },
+  ],
+  portrait: [
+    { photo: 'boulevard.jpg', zoom: 1, fx: 0.5, fy: 0.13 },
+    { photo: 'pier.jpg', zoom: 1.25, fx: 0.55, fy: 0.05 },
+    { photo: 'classic-car.jpg', zoom: 1, fx: 0.5, fy: 0.5 },
+  ],
+  square: [
+    { photo: 'lifeguard.jpg', zoom: 1, fx: 0.17, fy: 0.5 },
+    { photo: 'boulevard.jpg', zoom: 1, fx: 0.5, fy: 0.14 },
+    { photo: 'classic-car.jpg', zoom: 1, fx: 0.5, fy: 0.55 },
+  ],
+};
 
 function params() {
   return new URLSearchParams(window.location.search);
@@ -24,50 +66,34 @@ async function runShot() {
   const app = await waitForApp();
   if (!app) return;
 
-  const photo = q.get('photo') || 'boulevard.jpg';
   const caption = q.get('caption');
   const size = q.get('size');
   const grade = q.get('grade');
-  const layout = q.get('layout');
 
   if (size) {
     const [w, h] = size.split('x').map(Number);
     const match = EXPORT_SIZES.find((s) => s.w === w && s.h === h);
     if (match) app.setSize(match.id);
   }
-  if (layout) app.setLayout(layout);
   if (grade) app.setGrade(grade);
   if (caption !== null) app.setCaption(caption);
 
-  // Load the sample photo (fresh Image each run so panels all get it).
-  const img = new Image();
-  await new Promise((resolve) => {
-    img.onload = resolve;
-    img.onerror = resolve;
-    img.src = `samples/${photo}`;
+  // Load every sample through the editor's own loader, then lay the
+  // scene for this size over the panels.
+  for (const name of SAMPLES) await app.loadSample(name);
+  const scene = SCENES[app.state.sizeId] || SCENES.landscape;
+  app.state.panels.forEach((p, i) => {
+    const c = scene[i % scene.length];
+    const idx = app.state.photos.findIndex((ph) => ph.name === c.photo);
+    if (idx < 0) return;
+    p.photoIdx = idx;
+    p.zoom = c.zoom;
+    p.fx = c.fx;
+    p.fy = c.fy;
+    p.ox = 0;
+    p.oy = 0;
   });
-  if (img.naturalWidth > 0) {
-    // Push the photo into the editor's photo list via its own loader path:
-    // reuse loadSample so the photo lands in every empty panel.
-    await app.loadSample(photo);
-    await app.loadSample('pier.jpg');
-    // A poster reads as a poster only when its panels differ: alternate the
-    // two samples and vary the crop per panel instead of repeating one shot.
-    const crops = [
-      { photoIdx: 0, zoom: 1.0, ox: 0, oy: 0.28 },
-      { photoIdx: 1, zoom: 1.15, ox: 0.1, oy: 0.12 },
-      { photoIdx: 0, zoom: 1.5, ox: -0.08, oy: 0.05 },
-      { photoIdx: 1, zoom: 1.0, ox: -0.06, oy: 0.05 },
-    ];
-    app.state.panels.forEach((p, i) => {
-      const c = crops[i % crops.length];
-      p.photoIdx = c.photoIdx;
-      p.zoom = c.zoom;
-      p.ox = c.ox;
-      p.oy = c.oy;
-    });
-    app.render();
-  }
+  app.render();
 
   if (shot === 'cover') {
     // Full-bleed cover scene: hide the editor chrome, show the cover alone

@@ -100,14 +100,28 @@ export const GRADES = {
 const INK = '#14001f'; // deep plum outline used for lettering and gutters
 const PAPER = '#0b0614'; // cover background behind the panels
 
-function coverFit(img, rect, zoom, ox, oy) {
+// Default focal point for a panel photo, as fractions of the photo itself.
+// Horizontally centred; vertically in the upper third, because faces and
+// subjects usually live there — a plain centre crop through a wide, short
+// panel slices heads off, which is exactly what the first VICE FRAME
+// screenshots did. A panel may override with its own fx / fy.
+export const DEFAULT_FX = 0.5;
+export const DEFAULT_FY = 0.34;
+
+function coverFit(img, rect, panel) {
   const base = Math.max(rect.w / img.naturalWidth, rect.h / img.naturalHeight);
-  const s = base * zoom;
+  const s = base * (panel.zoom || 1);
   const dw = img.naturalWidth * s;
   const dh = img.naturalHeight * s;
+  const fx = panel.fx ?? DEFAULT_FX;
+  const fy = panel.fy ?? DEFAULT_FY;
+  // Place the photo so its focal point sits at the same relative spot in
+  // the panel: (rect - drawn) * f distributes the overflow around the
+  // focal point instead of always halving it. ox / oy remain free shifts
+  // on top, in panel-size units, as the editor sliders have always done.
   return {
-    dx: rect.x + (rect.w - dw) / 2 + ox * rect.w,
-    dy: rect.y + (rect.h - dh) / 2 + oy * rect.h,
+    dx: rect.x + (rect.w - dw) * fx + (panel.ox || 0) * rect.w,
+    dy: rect.y + (rect.h - dh) * fy + (panel.oy || 0) * rect.h,
     dw,
     dh,
   };
@@ -120,7 +134,7 @@ function paintPhoto(ctx, img, rect, panel, grade) {
   ctx.clip();
   if (img) {
     ctx.filter = grade.filter;
-    const d = coverFit(img, rect, panel.zoom, panel.ox, panel.oy);
+    const d = coverFit(img, rect, panel);
     ctx.drawImage(img, d.dx, d.dy, d.dw, d.dh);
     ctx.filter = 'none';
   } else {
@@ -252,7 +266,7 @@ export function drawCover(ctx, W, H, state) {
   ctx.fillRect(0, 0, W, H);
   const rects = layout.panels(W, H, gap);
   rects.forEach((rect, i) => {
-    const panel = state.panels[i] || { photo: null, zoom: 1, ox: 0, oy: 0 };
+    const panel = state.panels[i] || { photo: null, zoom: 1, ox: 0, oy: 0, fx: DEFAULT_FX, fy: DEFAULT_FY };
     paintPhoto(ctx, panel.photo, rect, panel, grade);
   });
   // Gutter lines between panels.

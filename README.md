@@ -10,8 +10,9 @@ no upload, no account, no network. Made for the
 
 ## What it does
 
-- **Load your photos** from your machine (or try the two built-in samples) and
-  drop them into panels.
+- **Load your photos** from your machine (or try the five built-in samples) and
+  drop them into panels — with several photos loaded, each panel gets a
+  different one.
 - **Four poster layouts** — hero + duo, 2×2 grid, tall + stacked strip, and a
   split duo — with a different photo per panel.
 - **Crop and position each photo** — click a panel, drag the photo inside it,
@@ -37,9 +38,16 @@ Everything the app loads is a file under `app/` — it works fully offline.
 ## Originality
 
 VICE FRAME is not affiliated with Rockstar Games. It uses no Rockstar logo,
-artwork, character or font: lettering is drawn with system fonts, the sample
-photos were made for make.fun with an image model, and every line of the app
-was written for this entry.
+artwork, character or font: lettering is drawn with system fonts, and every
+line of the app was written for this entry.
+
+Sample photos: `boulevard.jpg` and `pier.jpg` were made for make.fun with an
+image model. The other three are photographs from Wikimedia Commons, resized
+and lightly compressed:
+
+- `neon.jpg` — "Boulevard Hotel (Neon sign), Miami Beach" — Public domain.
+- `lifeguard.jpg` — "Lifeguard tower in Miami Beach – november 2022" — CC0.
+- `classic-car.jpg` — "Classic car in Havana" — CC0.
 
 ## License
 

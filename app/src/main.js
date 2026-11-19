@@ -3,7 +3,13 @@
 // All drawing goes through drawCover() in cover.js so the preview and the
 // exported PNG are the same picture at different sizes.
 
-import { drawCover, EXPORT_SIZES, GRADES, LAYOUTS, layoutPanelCount } from './cover.js';
+import { drawCover, DEFAULT_FX, DEFAULT_FY, EXPORT_SIZES, GRADES, LAYOUTS, layoutPanelCount } from './cover.js';
+
+// The built-in sample photos, in the order the demo loads them. Five
+// different scenes — a boulevard portrait, a pier fisherman, a neon hotel
+// sign, a lifeguard tower and a classic car — so every multi-panel layout
+// can give each panel its own photo. Sources and licences: see README.md.
+const SAMPLES = ['boulevard.jpg', 'pier.jpg', 'neon.jpg', 'lifeguard.jpg', 'classic-car.jpg'];
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('preview');
@@ -26,11 +32,34 @@ function sizeOf() {
   return EXPORT_SIZES.find((s) => s.id === state.sizeId) || EXPORT_SIZES[2];
 }
 
+function newPanel() {
+  // fx / fy: the photo's focal point. The default sits in the upper third
+  // of the photo so faces survive wide, short panels (see cover.js).
+  return { photoIdx: -1, zoom: 1, ox: 0, oy: 0, fx: DEFAULT_FX, fy: DEFAULT_FY };
+}
+
 function ensurePanels() {
   const n = layoutPanelCount(state.layout);
-  while (state.panels.length < n) state.panels.push({ photoIdx: -1, zoom: 1, ox: 0, oy: 0 });
+  while (state.panels.length < n) state.panels.push(newPanel());
   state.panels.length = n;
   if (selectedPanel >= n) selectedPanel = 0;
+}
+
+// Give every panel a different photo while unused photos remain. Panels
+// that already hold a unique photo keep it; empty or duplicated panels
+// take the next unused photo in load order. Only when the photos run out
+// (fewer photos than panels) does a later panel reuse one — and a single
+// loaded photo still fills the whole cover, as it always has.
+function assignDistinctPhotos() {
+  if (state.photos.length === 0) return;
+  const used = new Set();
+  state.panels.forEach((p, i) => {
+    if (p.photoIdx < 0 || used.has(p.photoIdx)) {
+      const free = state.photos.findIndex((_, j) => !used.has(j));
+      p.photoIdx = free >= 0 ? free : i % state.photos.length;
+    }
+    used.add(p.photoIdx);
+  });
 }
 
 function panelStates() {
@@ -40,6 +69,8 @@ function panelStates() {
     zoom: p.zoom,
     ox: p.ox,
     oy: p.oy,
+    fx: p.fx ?? DEFAULT_FX,
+    fy: p.fy ?? DEFAULT_FY,
   }));
 }
 
@@ -56,11 +87,14 @@ function render() {
     subcaption: state.subcaption,
     panels: panelStates(),
   });
-  // Highlight the selected panel with a dashed outline.
+  // Highlight the selected panel with a dashed outline — in the editor
+  // only. In the full-bleed cover scene (body.shot-cover) the page IS the
+  // cover, so it must render exactly what Export PNG produces, with no
+  // editor chrome painted over it.
   const gap = Math.max(4, Math.round(Math.min(canvas.width, canvas.height) * 0.012));
   const rects = LAYOUTS[state.layout].panels(canvas.width, canvas.height, gap);
   const r = rects[selectedPanel];
-  if (r) {
+  if (r && !document.body.classList.contains('shot-cover')) {
     ctx.save();
     ctx.setLineDash([10, 6]);
     ctx.lineWidth = 3;
@@ -119,10 +153,9 @@ function addPhotoFile(file) {
     img.onload = () => {
       state.photos.push({ name: file.name, img });
       URL.revokeObjectURL(url);
-      // First photo fills every empty panel so the cover is instant.
-      state.panels.forEach((p) => {
-        if (p.photoIdx < 0) p.photoIdx = state.photos.length - 1;
-      });
+      // New photo goes into the empty/duplicated panels first, so adding
+      // photos one by one still ends with a different photo per panel.
+      assignDistinctPhotos();
       fillPhotoPick();
       render();
       resolve();
@@ -133,20 +166,16 @@ function addPhotoFile(file) {
 }
 
 function loadSample(name) {
+  // Loading the same sample twice would defeat the distinct-photo spread.
+  if (state.photos.some((ph) => ph.name === name)) return Promise.resolve();
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
       state.photos.push({ name, img });
-      // First photo fills every empty panel; once a second photo exists,
-      // spread the photos across the panels so the poster is not one shot
-      // repeated.
-      if (state.photos.length >= 2) {
-        state.panels.forEach((p, i) => { p.photoIdx = i % state.photos.length; });
-      } else {
-        state.panels.forEach((p) => {
-          if (p.photoIdx < 0) p.photoIdx = state.photos.length - 1;
-        });
-      }
+      // Spread the photos across the panels so no panel repeats a photo
+      // while an unused one exists (the old two-sample spread repeated
+      // the first photo in panel 3 of the poster layout).
+      assignDistinctPhotos();
       fillPhotoPick();
       render();
       resolve();
@@ -201,6 +230,9 @@ function buildButtons(el, entries, current, onPick) {
 buildButtons($('layouts'), Object.entries(LAYOUTS).map(([id, l]) => [id, l.label]), state.layout, (id) => {
   state.layout = id;
   ensurePanels();
+  // A layout with more panels (grid has 4) must not leave the new panels
+  // empty or repeating while an unused photo is loaded.
+  assignDistinctPhotos();
 });
 buildButtons($('grades'), Object.entries(GRADES).map(([id, g]) => [id, g.label]), state.grade, (id) => {
   state.grade = id;
@@ -218,8 +250,7 @@ $('fileInput').addEventListener('change', async (e) => {
   e.target.value = '';
 });
 $('sampleBtn').addEventListener('click', async () => {
-  await loadSample('boulevard.jpg');
-  await loadSample('pier.jpg');
+  for (const name of SAMPLES) await loadSample(name);
 });
 $('photoPick').addEventListener('change', (e) => {
   state.panels[selectedPanel].photoIdx = Number(e.target.value);
@@ -299,7 +330,7 @@ window.__viceFrame = {
   loadSample,
   setCaption(t) { state.caption = t; $('caption').value = t; render(); },
   setSubcaption(t) { state.subcaption = t; $('subcaption').value = t; render(); },
-  setLayout(id) { state.layout = id; ensurePanels(); render(); },
+  setLayout(id) { state.layout = id; ensurePanels(); assignDistinctPhotos(); render(); },
   setGrade(id) { state.grade = id; render(); },
   setSize(id) { state.sizeId = id; render(); },
 };
